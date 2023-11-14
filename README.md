@@ -15,7 +15,7 @@ pip install .
 
 for each pdb in your benchmark set, you can run the following command:
 ```
-aiabs ${PDB} --input_dir=${path_to_benchmark_folder}/${PDB} --output_dir=${path_to_output_dir} --act_act_path=./bin/generate-act-act.sh
+aiabs ${PDB} --input_dir=benchmark_haddock_23_May_2023/${PDB} --output_dir=${path_to_output_dir} --act_act_path=./bin/generate-act-act.sh
 ```
 
 # 4. analyse the results
