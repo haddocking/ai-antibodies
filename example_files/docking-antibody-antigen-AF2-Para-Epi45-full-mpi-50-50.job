@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=12
+#SBATCH -J hd3-PDB-af2-epi
+
+# make sure anaconda is activated
+conda init
+source $HOME/anaconda3/bin/activate
+source activate haddock3
+
+# go to the example directory
+cd DATADIR
+
+# execute
+haddock3 docking-antibody-antigen-AF2-Para-Epi45-full-50-50.cfg
