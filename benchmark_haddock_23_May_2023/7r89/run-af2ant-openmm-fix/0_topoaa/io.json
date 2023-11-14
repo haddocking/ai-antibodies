@@ -1,0 +1,81 @@
+{
+    "input": [],
+    "output": [
+        {
+            "0": {
+                "clt_id": null,
+                "clt_model_rank": null,
+                "clt_rank": null,
+                "created": "2023-01-17 10:41:22",
+                "file_name": "7r89_AF2_antigen_model_orig_haddock.pdb",
+                "file_type": {
+                    "py/reduce": [
+                        {
+                            "py/type": "haddock.libs.libontology.Format"
+                        },
+                        {
+                            "py/tuple": [
+                                "pdb"
+                            ]
+                        }
+                    ]
+                },
+                "full_name": "7r89_AF2_antigen_model_orig_haddock.pdb",
+                "len": NaN,
+                "md5": null,
+                "ori_name": "7r89_AF2_antigen_model_orig",
+                "path": "/trinity/login/mgiulini/antibodies/exscentia_project/benchmark_haddock_10_Jan_2023/7r89/run-af2ant-openmm-fix/0_topoaa",
+                "py/object": "haddock.libs.libontology.PDBFile",
+                "rel_path": {
+                    "py/reduce": [
+                        {
+                            "py/type": "pathlib.PosixPath"
+                        },
+                        {
+                            "py/tuple": [
+                                "..",
+                                "0_topoaa",
+                                "7r89_AF2_antigen_model_orig_haddock.pdb"
+                            ]
+                        }
+                    ]
+                },
+                "score": NaN,
+                "topology": {
+                    "created": "2023-01-17 10:41:22",
+                    "file_name": "7r89_AF2_antigen_model_orig_haddock.psf",
+                    "file_type": {
+                        "py/reduce": [
+                            {
+                                "py/type": "haddock.libs.libontology.Format"
+                            },
+                            {
+                                "py/tuple": [
+                                    "psf"
+                                ]
+                            }
+                        ]
+                    },
+                    "full_name": "7r89_AF2_antigen_model_orig_haddock.psf",
+                    "md5": null,
+                    "path": "/trinity/login/mgiulini/antibodies/exscentia_project/benchmark_haddock_10_Jan_2023/7r89/run-af2ant-openmm-fix/0_topoaa",
+                    "py/object": "haddock.libs.libontology.TopologyFile",
+                    "rel_path": {
+                        "py/reduce": [
+                            {
+                                "py/type": "pathlib.PosixPath"
+                            },
+                            {
+                                "py/tuple": [
+                                    "..",
+                                    "0_topoaa",
+                                    "7r89_AF2_antigen_model_orig_haddock.psf"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
