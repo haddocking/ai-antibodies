@@ -29,3 +29,7 @@ aiabs-analysis --ref_folders=haddock_runs_caprieval --exclude_pdbs=7seg,7kn4
 ```
 
 for plotting the results you can access the script available in the [analysis](https://github.com/mgiulini/aiabs/tree/main/analysis) folder.
+
+# Notebooks
+Additional plots for correlating DockQ vs confidence measures and against interface/paratope/epitope RMSD can be created
+using the notebooks in `analysis/notebooks`.
