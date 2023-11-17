@@ -8,3 +8,6 @@ pandas==1.5.0
 freesasa==2.2.0.post3
 jupyter
 seaborn
+pandas
+numpy
+tqdm
