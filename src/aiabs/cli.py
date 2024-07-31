@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 import os
 import time
+import pandas as pd
 
 from aiabs.modules.pdb import generate_fasta, generate_target, preprocess_ab_file, preprocess_ant_file, get_resids, preprocess_ensemble_file
 from aiabs.modules.file import setup_directory, prepare_jobs
@@ -20,6 +21,7 @@ from aiabs.modules.restraints import (
     standardize_unambig_tbls,
     get_solvent_exposed_residues,
     )
+from aiabs.modules.cluster import cluster_antibodies
 
 logging.basicConfig(filename="aiabslog")
 log = logging.getLogger("aiabslog")
@@ -170,15 +172,51 @@ def main(
                                               pdb_datadir,
                                               f"{pdb}_ABodyBuilder2ens_haddock-ready.pdb",
                                               flag_dict)
+    
+    # Alphafold input: create also an ensemble
+    af_files = os.listdir(Path(input_dir, f"AF2_ensemble_models_{pdb}"))
+    inp_af_files = [Path(input_dir, f"AF2_ensemble_models_{pdb}", el) for el in af_files]
+    log.info(f"af_files available {inp_af_files}")
+    af_fastas, proc_af_files = {}, {}
+    for af_fl in sorted(inp_af_files):
+        rank = f'afrank{af_fl.stem.split("rank_")[-1]}'
+        proc_af_files[rank] = preprocess_ab_file(af_fl,
+                                                pdb_datadir,
+                                                f"{pdb}_{rank}_haddock-ready.pdb")
+        af_fastas[rank] = generate_fasta(af_fl, pdb_datadir)
+    log.info(f"proc_af_files {proc_af_files}")
+    # af ensemble creation
+    ensemble_fname = preprocess_ensemble_file(proc_af_files,
+                                                pdb_datadir,
+                                                f"{pdb}_AF2ens_haddock-ready.pdb",
+                                                flag_dict)
+    
+    # IgFold input: create also an ensemble
+    ig_files = os.listdir(Path(input_dir, f"IgFold_ensemble_models_{pdb}"))
+    inp_ig_files = [Path(input_dir, f"IgFold_ensemble_models_{pdb}", el) for el in ig_files]
+    log.info(f"ig_files available {inp_ig_files}")
+    ig_fastas, proc_ig_files = {}, {}
+    for ig_fl in sorted(inp_ig_files):
+        rank = f'igrank{ig_fl.stem.split("rank_")[-1]}'
+        proc_ig_files[rank] = preprocess_ab_file(ig_fl,
+                                                pdb_datadir,
+                                                f"{pdb}_{rank}_haddock-ready.pdb")
+        ig_fastas[rank] = generate_fasta(ig_fl, pdb_datadir)
+    log.info(f"proc_ig_files {proc_ig_files}")
+    # ig ensemble creation
+    ensemble_fname = preprocess_ensemble_file(proc_ig_files,
+                                              pdb_datadir,
+                                              f"{pdb}_IgFoldens_haddock-ready.pdb",
+                                              flag_dict)
 
     # 3 preprocess antigen
     inp_ant_file = [el for el in pdb_files if el.name.endswith("antigen.pdb")][0]
     log.info(f"preprocessing antigen file {inp_ant_file}")
-    out_ant_file = preprocess_ant_file(inp_ant_file, pdb_datadir, f"{pdb}_antigen_haddock-ready.pdb")
+    out_ant_file, antigen_residues = preprocess_ant_file(inp_ant_file, pdb_datadir, f"{pdb}_antigen_haddock-ready.pdb")
     log.info(f"antigen file is {out_ant_file}")
     # af2 antigen
     inp_ant_af2_file = [el for el in pdb_files if el.name.endswith("_antigen_model.pdb")][0]
-    out_ant_af2_file = preprocess_ant_file(inp_ant_af2_file, pdb_datadir, f"{pdb}_af2_antigen_haddock-ready.pdb")
+    out_ant_af2_file, antigen_af2_residues = preprocess_ant_file(inp_ant_af2_file, pdb_datadir, f"{pdb}_af2_antigen_haddock-ready.pdb")
     log.info(f"af2 antigen file is {out_ant_af2_file}")
     # fastas for antigen
     ant_fastas = {}
@@ -187,13 +225,29 @@ def main(
 
 
     # 4 preprocess target
+    log.info(f"expected target file name = {pdb}_true_complex.pdb")
+    log.info(f"looking for it in pdb_files {[el.name for el in pdb_files]}")
     target_file = [el for el in pdb_files if el.name == f"{pdb}_true_complex.pdb"]
-    target_ab_fname, target_ant_fname, target_fname = generate_target(target_file[0], pdb_datadir, pdb)
+    if len(target_file) == 0:
+        target_file = [el for el in pdb_files if el.name.endswith(f"true_complex.pdb")]
+    log.info(f"target_file {target_file}")
+    # extracting chains
+    c_list_ab = Path(input_dir, f"{pdb}_residue_constraints_antibody.csv")
+    c_list_df = pd.read_csv(c_list_ab)
+    
+    chains = c_list_df["chain"].unique()
+    chains = [chains[0], chains[1]] # heavy chain should be first I imagine
+    log.info(f"antibody heavy-light chain {chains}")
+    target_ab_fname, target_ant_fname, target_fname, antibody_bound_resids = generate_target(target_file[0], pdb_datadir, pdb, chains)
+    print(f"antibody_bound_resids {antibody_bound_resids}")
     log.info(f"target_ab_fname {target_ab_fname}")
     ab_fastas["target"] = generate_fasta(target_ab_fname, pdb_datadir)
-
     # 5 check alignments and residue ids
     dict.update(ab_fastas, abb2_fastas)
+    # add af and igfold sequences
+    dict.update(ab_fastas, af_fastas)
+    dict.update(ab_fastas, ig_fastas)
+
     check_aligned = check_align(ab_fastas, pdb_alndir)
 
     # 5.b check antigen alignments
@@ -210,25 +264,42 @@ def main(
     for ab1 in antibodies_resids.keys():
         for ab2 in antibodies_resids.keys():
             if (ab1 != ab2):
+                residues_ids_i = [el[1:] for el in antibodies_resids[ab1]]
+                residues_ids_j = [el[1:] for el in antibodies_resids[ab2]]
                 if antibodies_resids[ab1] != antibodies_resids[ab2]:
-                    raise Exception(f"resids mismatch between {ab1} and {ab2}")
+                    if residues_ids_i == residues_ids_j:
+                        log.warning(f"resids mismatch between {ab1} and {ab2}: residue ids are the same, but the chains are different")
+                    else:
+                        raise Exception(f"resids mismatch between {ab1} and {ab2}: residue ids are different")
     # antigen residues
     ant_filename = [el for el in pdb_files if el.name.endswith("antigen.pdb")][0]
-    antigen_residues = get_resids(ant_filename)
+    #antigen_residues = get_resids(ant_filename)
+    print(f"antigen_residues {antigen_residues}")
     # AF2 antigen residues
     ant_af2_filename = [el for el in pdb_files if el.name.endswith("AF2_antigen_model.pdb")][0]
-    antigen_af2_residues = get_resids(ant_af2_filename)
+    #antigen_af2_residues = get_resids(ant_af2_filename)
 
     # 6 coupled restraints
     c_pairs_file = Path(input_dir, f"{pdb}_constraint_pairs.txt")
     constr_ab, constr_ant = get_restrs_from_pairs(c_pairs_file,
                                                   antibodies_resids["IgFold"],
-                                                  antigen_residues)
+                                                  antigen_residues,
+                                                  chain_mapping={chains[0]: "H", chains[1]: "L"})
     restr_line_filename = Path(pdb_datadir, f"{pdb}_restraint_line.txt")
     tbl_filename = Path(pdb_datadir, f"{pdb}_ambig_Para_Epi.tbl")
 
     write_restraints({"A": constr_ab, "B": constr_ant}, restr_line_filename, tbl_filename, act_act_path)
 
+    # bound antibody restraints
+    constr_ab_bound, constr_ant_bound = get_restrs_from_pairs(c_pairs_file,
+                                                              antibody_bound_resids,
+                                                              antigen_residues,
+                                                              chain_mapping={chains[0]: chains[0], chains[1]: chains[1]})
+    print(f"constr_ant_bound {constr_ant_bound}")
+    restr_line_bound_filename = Path(pdb_datadir, f"{pdb}_bound_restraint_line.txt")
+    tbl_filename_bound = Path(pdb_datadir, f"{pdb}_ambig_bound_Para_Epi.tbl")
+    write_restraints({"A": constr_ab_bound, "B": constr_ant_bound}, restr_line_bound_filename, tbl_filename_bound, act_act_path)
+                                                              
     # 6.b ZDOCK coupled restraints
     zdock_ab_restr_filename = Path(pdb_datadir, f"{pdb}_zdock_ab_Para_Epi.csv")
     zdock_ant_restr_filename = Path(pdb_datadir, f"{pdb}_zdock_ant_Para_Epi.csv")
@@ -239,8 +310,10 @@ def main(
     af2_c_pairs_file = Path(input_dir, f"{pdb}_af2_constraint_pairs.txt")
     constr_ab_af2, constr_ant_af2 = get_restrs_from_pairs(af2_c_pairs_file,
                                                   antibodies_resids["IgFold"],
-                                                  antigen_af2_residues)
-    assert constr_ab == constr_ab_af2
+                                                  antigen_af2_residues,
+                                                  chain_mapping={chains[0]: "H", chains[1]: "L"})
+    # 22/5/2024: unfortunately this is not true anymore
+    #assert constr_ab == constr_ab_af2
     restr_line_af2_filename = Path(pdb_datadir, f"{pdb}_af2_restraint_line.txt")
     tbl_filename_af2 = Path(pdb_datadir, f"{pdb}_ambig_af2_Para_Epi.tbl")
     write_restraints({"A": constr_ab_af2, "B": constr_ant_af2}, restr_line_af2_filename, tbl_filename_af2, act_act_path)
@@ -253,10 +326,10 @@ def main(
     c_list_ab = Path(input_dir, f"{pdb}_residue_constraints_antibody.csv")
     c_list_ant = Path(input_dir, f"{pdb}_residue_constraints_antigen.csv")
     c_list_ant_af2 = Path(input_dir, f"{pdb}_af2_residue_constraints_antigen.csv")
-    constr_ab_dec = get_restrs_from_list(c_list_ab, antibodies_resids["IgFold"])
+    constr_ab_dec = get_restrs_from_list(c_list_ab, antibodies_resids["IgFold"], chain_mapping={chains[0]: "H", chains[1]: "L"})
     constr_ant_dec = get_restrs_from_list(c_list_ant, antigen_residues)
     constr_ant_af2_dec = get_restrs_from_list(c_list_ant_af2, antigen_af2_residues)
-
+    
     restr_line_dec_filename = Path(pdb_datadir, f"{pdb}_decoupled_restraint_line.txt")
     tbl_filename_dec = Path(pdb_datadir, f"{pdb}_ambig_CDR_EpiVag_act-act.tbl")
     write_restraints({"A": constr_ab_dec, "B": constr_ant_dec}, restr_line_dec_filename, tbl_filename_dec, act_act_path)
@@ -264,6 +337,17 @@ def main(
     new_tbl_filename = Path(pdb_datadir, f"{pdb}_ambig_CDR_EpiVag.tbl")
     splt_string = f"!{os.linesep}! HADDOCK AIR restraints for 2nd partner"
     write_split_tbl(tbl_filename_dec, splt_string, new_tbl_filename)
+
+    # bound antibody restraints
+    constr_ab_bound_dec = get_restrs_from_list(c_list_ab, antibody_bound_resids, chain_mapping={chains[0]: chains[0], chains[1]: chains[1]})
+
+    restr_line_bound_dec_filename = Path(pdb_datadir, f"{pdb}_bound_decoupled_restraint_line.txt")
+    tbl_filename_bound_dec = Path(pdb_datadir, f"{pdb}_ambig_bound_CDR_EpiVag_act-act.tbl")
+    write_restraints({"A": constr_ab_bound_dec, "B": constr_ant_dec}, restr_line_bound_dec_filename, tbl_filename_bound_dec, act_act_path)
+
+    new_tbl_filename_bound = Path(pdb_datadir, f"{pdb}_ambig_bound_CDR_EpiVag.tbl")
+    splt_string = f"!{os.linesep}! HADDOCK AIR restraints for 2nd partner"
+    write_split_tbl(tbl_filename_bound_dec, splt_string, new_tbl_filename_bound)
 
     # 7.b ZDOCK decoupled restraints
     zdock_ab_restr_filename_dec = Path(pdb_datadir, f"{pdb}_zdock_ab_CDR_EpiVag.csv")
@@ -274,17 +358,17 @@ def main(
     write_zdock_restraints({"B": constr_ant_af2_dec}, zdock_af2ant_restr_filename_dec)
 
     # bonus: CDR (active)- surface residues (passive) restraints
-    af2_exposed_residues = get_solvent_exposed_residues(out_ant_af2_file, 0.4)
-    log.info(f"exposed residues on af2 structure are {af2_exposed_residues}")
-    
-    uniq_epi_af2_resids = list(set(constr_ant_af2))
-    overlap = [el for el in uniq_epi_af2_resids if el in af2_exposed_residues]
-    log.info(f"overlap residues with Para-Epi {overlap}, a fraction of {len(overlap)/len(uniq_epi_af2_resids)}")
-    
-    tbl_filename_cdr_asa = Path(pdb_datadir, f"{pdb}_ambig_CDR_ASA_act-pas.tbl")
-    restr_line_asa_filename = Path(pdb_datadir, f"{pdb}_cdr-asa_restraint_line.txt")
-    write_restraints({"A": constr_ab_dec, "B": af2_exposed_residues}, restr_line_asa_filename, tbl_filename_cdr_asa, act_act_path)
-    write_split_tbl(tbl_filename_cdr_asa, splt_string, tbl_filename_cdr_asa)
+    #af2_exposed_residues = get_solvent_exposed_residues(out_ant_af2_file, 0.4)
+    #log.info(f"exposed residues on af2 structure are {af2_exposed_residues}")
+    #
+    #uniq_epi_af2_resids = list(set(constr_ant_af2))
+    #overlap = [el for el in uniq_epi_af2_resids if el in af2_exposed_residues]
+    #log.info(f"overlap residues with Para-Epi {overlap}, a fraction of {len(overlap)/len(uniq_epi_af2_resids)}")
+    #
+    #tbl_filename_cdr_asa = Path(pdb_datadir, f"{pdb}_ambig_CDR_ASA_act-pas.tbl")
+    #restr_line_asa_filename = Path(pdb_datadir, f"{pdb}_cdr-asa_restraint_line.txt")
+    #write_restraints({"A": constr_ab_dec, "B": af2_exposed_residues}, restr_line_asa_filename, tbl_filename_cdr_asa, act_act_path)
+    #write_split_tbl(tbl_filename_cdr_asa, splt_string, tbl_filename_cdr_asa)
 
     # af2 decoupled restraints
     restr_line_af2_dec_filename = Path(pdb_datadir, f"{pdb}_af2_decoupled_restraint_line.txt")
@@ -325,7 +409,7 @@ def main(
     # join antibody and af2-antigen tbls
     join_tbls([unambig_ab_bound_fname, unambig_ant_af2_fname], unambig_bound_af2_fname)
     #unambig_files_af2[f"{key}"] = unambig_bound_af2_fname
-    
+        
     # 9 ensemble creation
     ensemble_fname = preprocess_ensemble_file(out_ab_files,
                                               pdb_datadir,
@@ -337,6 +421,23 @@ def main(
                                               pdb_datadir,
                                               f"{pdb}_noAF2_ensemble.pdb",
                                               flag_dict=None) # the antibodies have already been substituted at this point
+
+    # 9.c clustered ensemble creation
+    # merge af2 and igfold ensembles
+    overall_ensemble_files = {}
+    # update dictionary
+    dict.update(overall_ensemble_files, proc_ig_files)
+    dict.update(overall_ensemble_files, proc_af_files)
+    dict.update(overall_ensemble_files, proc_abb2_files)
+    # with ablooper
+    overall_ensemble_files["ABlooper"] = out_ab_files["ABlooper"]
+
+    cl_ensemble_files = cluster_antibodies(overall_ensemble_files, constr_ab_dec)
+    
+    ensemble_fname = preprocess_ensemble_file(cl_ensemble_files,
+                                                pdb_datadir,
+                                                f"{pdb}_clust_ensemble.pdb",
+                                                flag_dict)
 
     # 10 copying and sedding cfg and job files.
     ex_files_path = Path(ex_files_path)
