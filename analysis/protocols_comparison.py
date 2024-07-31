@@ -11,7 +11,7 @@ cat_dict = {"Para-Epi": "Para-Epi",
             "CDR-EpiVag-AA" : "CDR-VagueEpi-AA"}
 
 # LOAD DATA
-rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
+rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
 #rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref = load_data()
 tot_runs = np.unique(rigidbody_capri["pdb"]).shape[0] # should be 79
 print(f"total number of runs {tot_runs}")

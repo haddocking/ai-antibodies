@@ -108,7 +108,8 @@ def main(
     log.info(f"pdbs to exclude from the analysis {to_exclude}")
 
     # 1 initialising antibodies dictionary
-    antibodies = [el for el in os.listdir(ref_folder) if len(el) == 4 and el not in to_exclude]
+    #antibodies = [el for el in os.listdir(ref_folder) if len(el) == 10 and el not in to_exclude]
+    antibodies = [el for el in os.listdir(ref_folder) if (len(el) == 10 or len(el) == 4) and el not in to_exclude]
     log.info(f"{len(antibodies)} antibodies in folder {ref_folder}: {antibodies}")
     
     capri_ss = {}
@@ -116,14 +117,14 @@ def main(
     for pdb in antibodies:
         log.info(f"processing pdb {pdb}")
         run_dirs = [fl for fl in os.listdir(Path(ref_folder, pdb)) if fl.startswith("run")]
-        #log.debug(f"run_dirs are {run_dirs}")
+        #log.info(f"run_dirs are {run_dirs}")
         for run in run_dirs:
             if capri_string == "flexref_analysis":
                 rel_path = Path(ref_folder, pdb, run, "analysis")
             else:
                 rel_path = Path(ref_folder, pdb, run)
             capri_folders = [fold.split("_")[0] for fold in os.listdir(rel_path) if fold.endswith(capri_string)]
-            log.debug(f"capri_folders are {capri_folders}")
+            #log.info(f"capri_folders are {capri_folders}")
             for capri in capri_folders:
                 if capri not in capri_ss.keys():
                     capri_ss[capri] = {}
@@ -143,18 +144,8 @@ def main(
                         capri_clt[capri][pdb] = {}
                     capri_clt[capri][pdb][run] = df_clt
     log.info(f"capri reading took {round((time.time() - start_time), 3)} seconds")
-    #print(f"capri_ss {capri_ss}")
     # aggregated tables
     generate_tables(capri_ss, capri_clt, ref_folder)
-
-    #for dir in ref_folders_list:
-    #if comparison == "yes":
-    #    apath = Path(ref_folder, "analysis", "comparison")
-    #    if not apath.exists():
-    #       os.mkdir(apath)
-    #    for capri_step in list(capri_ss.keys()):
-    #       output_file_basename = Path(apath, f"{capri_step}")
-    #       create_comparison_graphs(capri_ss[capri_step], ref_data, output_file_basename)
 
     log.info(f"aiabs-analysis succesful for input folder {ref_folder}")
     elap_time = round((time.time() - start_time), 3)

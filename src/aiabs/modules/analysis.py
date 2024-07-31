@@ -47,30 +47,25 @@ def acceptable_clusters_loose(caprieval_ss):
     """
     if one of the first four models of a cluster is correct, then the cluster is correct
     """
-    if "model-cluster-ranking" in caprieval_ss.columns:
-        keyword = "model-cluster-ranking"
-    else:
-        keyword = "self.model-cluster-ranking"
+    keyword = "model-cluster_ranking"
     npu = np.unique(caprieval_ss[keyword])
     if npu == "-":
         #print("not enough models in caprieval_ss")
         return None, None, None
     capri_df_clust = caprieval_ss.where((caprieval_ss[keyword] <= 3)).dropna()
-    #print(f"capri_df_clust {capri_df_clust}")
-    #cl_ids = np.unique(capri_df_clust["cluster-ranking"])
-    #(f"cluster ids: {cl_ids}")
+    
     capri_acc = []
     capri_medium = []
     capri_high = []
     for n in range(5): # top 5 clusters
         #capri_df_clust = capri_df.loc[capri_df["cluster-ranking"] <= n+1 & capri_df["model-cluster-ranking"] <= 4]
-        capri_df_clust_subset = capri_df_clust.where((capri_df_clust["cluster-ranking"] <= n+1)).dropna()
-        uni_cl = np.unique(capri_df_clust_subset["cluster-ranking"])
+        capri_df_clust_subset = capri_df_clust.where((capri_df_clust["cluster_ranking"] <= n+1)).dropna()
+        uni_cl = np.unique(capri_df_clust_subset["cluster_ranking"])
         acc_cl = 0
         med_cl = 0
         high_cl = 0
         for cl in uni_cl:
-            cl_df = capri_df_clust_subset.where(capri_df_clust_subset["cluster-ranking"] == cl).dropna()
+            cl_df = capri_df_clust_subset.where(capri_df_clust_subset["cluster_ranking"] == cl).dropna()
             cl_acc_len = len(acceptable_models_capri(cl_df))
             cl_med_len = len(medium_models_capri(cl_df))
             cl_high_len = len(high_models_capri(cl_df))
@@ -349,7 +344,9 @@ def generate_tables(capri_ss, capri_clt, ref_folder):
     """
     # get the acceptable, medium, and high-quality models.
     # these are dictionaries that have the same structure as the capri_ss and capri_clt ones
+    log.info("getting acceptable models")
     a_models_capri, m_models_capri, h_models_capri, a_models_clt_loose, m_models_clt_loose, h_models_clt_loose = get_acc_models(capri_ss, clt_loose=True)
+    log.info("getting acceptable clusters (hard threshold)")
     a_clusters_capri, m_clusters_capri, h_clusters_capri, a, b, c = get_acc_models(capri_clt)
     #print(f"a_models_clt_loose: {a_models_clt_loose}")
     #print(f"a_models_capri: {a_models_capri}")
@@ -373,6 +370,7 @@ def generate_tables(capri_ss, capri_clt, ref_folder):
 
     data = []
     for capri_step in list(capri_ss.keys()):
+        log.info(f"capri_step {capri_step}")
         for pdb in capri_ss[capri_step].keys():
             for run in capri_ss[capri_step][pdb].keys():
                 #print(f"step {capri_step} pdb {pdb} run {run} a_models_capri for {pdb} {a_models_capri[capri_step][pdb][run]}")
@@ -393,8 +391,9 @@ def generate_tables(capri_ss, capri_clt, ref_folder):
                 data.append(data_list)
 
     df_overall = pd.DataFrame(data)
-    #print(f"df_overall: {df_overall}")
+    print(f"df_overall: {df_overall}")
     df_overall.columns = column_names
+    log.info(f"writing df_overall to {Path(ref_folder, 'df_ss.tsv')}")
     df_overall.to_csv(Path(ref_folder, "df_ss.tsv"), sep=" ", index=None)
 
     acc_nums = [1,2,3,4,5]

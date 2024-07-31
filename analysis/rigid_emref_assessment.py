@@ -7,7 +7,7 @@ cat_dict = {"Para-Epi": "Para-Epi",
             "CDR-EpiVag": "CDR-VagueEpi" ,
             "CDR-EpiVag-AA" : "CDR-VagueEpi-AA"}
 
-rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
+rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
 
 af2_bound_gap_rigid = create_bound_gap_dictionary(rigidbody_capri, acc_key="acc")
 af2_bound_gap_rigid_emref = create_bound_gap_dictionary(emref_rigid_capri, acc_key="acc")
@@ -29,7 +29,6 @@ colors = plt.cm.tab20b.colors
 width = 0.2
 # rigidbody
 for cat in ["Para-Epi", "CDR-EpiVag-AA"]:
-    #xticks = ["ABB", "ABBE", "ABL", "AF2", "IG", "ENS", "ENSNOAF2", "ENS196-48", "ENS196-CLT"]
     xticks = ["ABB", "ABL", "AF2", "IG", "ABBE", "AF2E", "IGE", "ENS", "ENSNOAF2", "CLE", "ENS196-48", "ENS196-CLT"]
     sorted_runs = get_sorted_runs(cat)
     
