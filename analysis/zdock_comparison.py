@@ -4,16 +4,16 @@ from matplotlib import pyplot as plt
 import numpy as np
 from functions import load_data, create_bound_gap_dictionary, create_bound_bound_dictionary, create_zdock_dictionary
 plt.rcParams["font.family"] = "Helvetica"
-
+NPDBS = 82
 cat_dict = {"Para-Epi": "Para-Epi",
             "CDR-EpiVag": "CDR-VagueEpi" ,
             "CDR-EpiVag-AA" : "CDR-VagueEpi-AA"}
 
 # LOAD DATA
-rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri = load_data()
-tot_runs = np.unique(zdock_ss["pdb"]).shape[0] # should be 79
+rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
+tot_runs = np.unique(zdock_ss["pdb"]).shape[0] # should be 83
 print(f"total number of runs {tot_runs}")
-assert tot_runs == 71
+assert tot_runs == NPDBS
 # extract rigidbody, flexref and emref data
 af2_bound_gap_rigid = create_bound_gap_dictionary(rigidbody_capri)
 af2_bound_gap_emref = create_bound_gap_dictionary(emref_capri)

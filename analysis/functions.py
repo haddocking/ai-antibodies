@@ -1,8 +1,15 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+NPDBS = 82
 
-pdbs_to_exclude = ["6xsw", "7cj2", "7e9b", "7m3n", "7n3c", "7n3d", "7o52", "7or9"]
+def get_sorted_runs(cat):
+    sorted_runs = [f'run-af2ab-{cat}-mpi-50-50', f'run-af2abl-{cat}-mpi-50-50',
+                   f'run-af2af2-{cat}-mpi-50-50', f'run-af2ig-{cat}-mpi-50-50', 
+                   f'run-af2abens-{cat}-mpi-50-50', f'run-af2afens-{cat}-mpi-50-50', f'run-af2igens-{cat}-mpi-50-50',
+                   f'run-af2ens-{cat}-mpi-50-50', f'run-af2ensnoaf2-{cat}-mpi-50-50', f'run-af2clens-{cat}-mpi-50-50',
+                   f'run-af2ens-{cat}-mpi-196-48', f'run-af2ens-{cat}-mpi-196-clt']
+    return sorted_runs
 
 def load_data():
     """
@@ -10,33 +17,38 @@ def load_data():
     """
     df_ss = pd.read_csv(Path("data", "df_ss.tsv"), sep=" ")
     df_ss_flexref = pd.read_csv(Path("data", "df_ss_flexref.tsv"), sep=" ")
-    # bound data
-    df_ss_bound = pd.read_csv(Path("data", "df_ss_bound.tsv"), sep=" ")
-    df_ss_bound_flexref = pd.read_csv(Path("data", "df_ss_bound_flexref.tsv"), sep=" ")
+    # bound data: extract from df_ss: if the run contains the word bound
+    df_ss_bound = df_ss.loc[df_ss["run"].str.contains("bound")]
+    # bound flexref data: same logic as above
+    df_ss_bound_flexref = df_ss_flexref.loc[df_ss_flexref["run"].str.contains("bound")]
+    #df_ss_bound_flexref = pd.read_csv(Path("data", "df_ss_bound_flexref.tsv"), sep=" ")
     # rigid emref data
     df_ss_rigid_emref = pd.read_csv(Path("data", "df_ss_rigid-emref.tsv"), sep=" ")
 
     # ref data
-    ref_data = pd.read_csv(Path("data", "ref_data.csv"), sep=" ")
-    # zdock data
+    #ref_data = pd.read_csv(Path("data", "ref_data.csv"), sep=" ")
+    ## zdock data
     zdock_ss = pd.read_csv(Path("data", "df_ss_zdock.tsv"), sep=" ")
-
-    # remove pdbs
-    df_ss = df_ss.loc[~df_ss["pdb"].isin(pdbs_to_exclude)]
-    df_ss_flexref = df_ss_flexref.loc[~df_ss_flexref["pdb"].isin(pdbs_to_exclude)]
-    df_ss_bound = df_ss_bound.loc[~df_ss_bound["pdb"].isin(pdbs_to_exclude)]
-    df_ss_bound_flexref = df_ss_bound_flexref.loc[~df_ss_bound_flexref["pdb"].isin(pdbs_to_exclude)]
-    df_ss_rigid_emref = df_ss_rigid_emref.loc[~df_ss_rigid_emref["pdb"].isin(pdbs_to_exclude)]
-    ref_data = ref_data.loc[~ref_data["pdb"].isin(pdbs_to_exclude)]
-    zdock_ss = zdock_ss.loc[~zdock_ss["pdb"].isin(pdbs_to_exclude)]
+    # af2 multimer data
+    af2multimer_ss = pd.read_csv(Path("data", "df_ss_af2multimer.tsv"), sep=" ")
+#
+    ## remove pdbs
+    #df_ss = df_ss.loc[~df_ss["pdb"].isin(pdbs_to_exclude)]
+    #df_ss_flexref = df_ss_flexref.loc[~df_ss_flexref["pdb"].isin(pdbs_to_exclude)]
+    #df_ss_bound = df_ss_bound.loc[~df_ss_bound["pdb"].isin(pdbs_to_exclude)]
+    #df_ss_bound_flexref = df_ss_bound_flexref.loc[~df_ss_bound_flexref["pdb"].isin(pdbs_to_exclude)]
+    #df_ss_rigid_emref = df_ss_rigid_emref.loc[~df_ss_rigid_emref["pdb"].isin(pdbs_to_exclude)]
+    #ref_data = ref_data.loc[~ref_data["pdb"].isin(pdbs_to_exclude)]
+    #zdock_ss = zdock_ss.loc[~zdock_ss["pdb"].isin(pdbs_to_exclude)]
 
     # check that the number of runs is correct
-    tot_runs = np.unique(df_ss["pdb"]).shape[0] # should be 79
-    print(f"total number of runs {tot_runs}")
-    assert tot_runs == 71
-    zdock_tot_runs = np.unique(zdock_ss["pdb"]).shape[0] # should be 79
-    print(f"total number of ZDOCK runs {zdock_tot_runs}")
-    assert zdock_tot_runs == 71
+    tot_runs = np.unique(df_ss["pdb"]).shape[0] # should be 82
+    #print(f"total number of runs {tot_runs}")
+    assert tot_runs == NPDBS
+    zdock_tot_runs = np.unique(zdock_ss["pdb"]).shape[0] # should be 82
+    #print(f"total number of ZDOCK runs {zdock_tot_runs}")
+    assert zdock_tot_runs == NPDBS
+    assert np.unique(af2multimer_ss["pdb"]).shape[0] == NPDBS
 
     # rigidbody dfs
     rigidbody_capri = df_ss.loc[df_ss["capri_step"].isin([2,3])]
@@ -68,20 +80,17 @@ def load_data():
     # emref after rigid
     emref_capri_rigid = df_ss_rigid_emref.loc[df_ss_rigid_emref["capri_step"].isin([4])]
 
-    return rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_capri_rigid
+    return rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_capri_rigid, af2multimer_ss
 
 def load_clt_data():
     df_clt = pd.read_csv(Path("data", "df_clt.tsv"), sep=" ")
-    df_clt_bound = pd.read_csv(Path("data", "df_clt_bound.tsv"), sep=" ")
+    #df_clt_bound = pd.read_csv(Path("data", "df_clt_bound.tsv"), sep=" ")
+    df_clt_bound = df_clt.loc[df_clt["run"].str.contains("bound")]
     df_clt_loose = pd.read_csv(Path("data", "df_clt_loose.tsv"), sep=" ")
-    df_clt_bound_loose = pd.read_csv(Path("data", "df_clt_bound_loose.tsv"), sep=" ")
-
-    # remove pdbs to exclude
-    df_clt = df_clt.loc[~df_clt["pdb"].isin(pdbs_to_exclude)]
-    df_clt_bound = df_clt_bound.loc[~df_clt_bound["pdb"].isin(pdbs_to_exclude)]
-    df_clt_loose = df_clt_loose.loc[~df_clt_loose["pdb"].isin(pdbs_to_exclude)]
-    df_clt_bound_loose = df_clt_bound_loose.loc[~df_clt_bound_loose["pdb"].isin(pdbs_to_exclude)]
+    #df_clt_bound_loose = pd.read_csv(Path("data", "df_clt_bound_loose.tsv"), sep=" ")
+    df_clt_bound_loose = df_clt_loose.loc[df_clt_loose["run"].str.contains("bound")]
     return df_clt, df_clt_bound, df_clt_loose, df_clt_bound_loose
+
 
 def create_bound_gap_dictionary(capri_df, acc_key="acc"):
     """

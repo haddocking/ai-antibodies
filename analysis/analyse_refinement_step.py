@@ -1,15 +1,15 @@
 import numpy as np
 from functions import load_data, create_bound_gap_dictionary, create_bound_bound_dictionary
-
+NPDBS = 82
 print("Para-Epi scenario")
 xticks = ["ABB", "ABBE", "ABL", "AF2", "IG", "ENS", "ENSNOAF2", "ENS196-48", "ENS196-CLT"]
 
 # LOAD DATA
-rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri = load_data()
+rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
 tot_runs = np.unique(rigidbody_capri["pdb"]).shape[0] # should be 79
 print(f"total number of runs {tot_runs}")
 
-assert tot_runs == 71
+assert tot_runs == NPDBS
 # extract rigidbody, flexref and emref data
 acc_key="acc"
 cat = "Para-Epi"

@@ -2,8 +2,8 @@ import pandas as pd
 from pathlib import Path
 from matplotlib import pyplot as plt
 import numpy as np
-from functions import load_clt_data, create_bound_gap_clt_dictionary, create_bound_bound_clt_dictionary
-
+from functions import get_sorted_runs, load_clt_data, create_bound_gap_clt_dictionary, create_bound_bound_clt_dictionary
+NPDBS = 82
 plt.rcParams["font.family"] = "Helvetica"
 
 cat_dict = {"Para-Epi": "Para-Epi",
@@ -12,17 +12,18 @@ cat_dict = {"Para-Epi": "Para-Epi",
 
 # LOAD DATA
 df_clt, df_clt_bound, df_clt_loose, df_clt_bound_loose = load_clt_data()
-tot_runs = np.unique(df_clt_loose["pdb"]).shape[0] # should be 79
+tot_runs = np.unique(df_clt_loose["pdb"]).shape[0] # should be 83
 print(f"total number of runs {tot_runs}")
-assert tot_runs == 71
+assert tot_runs == NPDBS
 
 # CREATE DICTIONARIES
 af2_bound_gap_clt = create_bound_gap_clt_dictionary(df_clt)
 af2_bound_gap_clt_loose = create_bound_gap_clt_dictionary(df_clt_loose)
 bound_bound_clt = create_bound_bound_clt_dictionary(df_clt_bound)
 bound_bound_clt_loose = create_bound_bound_clt_dictionary(df_clt_bound_loose)
-print(af2_bound_gap_clt)
-print(af2_bound_gap_clt_loose)
+#print(af2_bound_gap_clt)
+#print(af2_bound_gap_clt_loose)
+print(F"plotting clustering data")
 # PLOT
 # standard df_clt based plot
 
@@ -35,8 +36,6 @@ def stacked_clustering_barplot(bound_gap_clt, bound_bound_clt, fname):
     ----------
     bound_gap_clt : dict
         dictionary of bound-gap clustering results
-    bound_bound_clt : dict
-        dictionary of bound-bound clustering results
     fname : str
         filename of the plot
     
@@ -51,12 +50,11 @@ def stacked_clustering_barplot(bound_gap_clt, bound_bound_clt, fname):
     col = 0
     for cat in ["Para-Epi", "CDR-EpiVag-AA", "CDR-EpiVag"]:
         print("category", cat)
-        xticks = ["ABB", "ABBE", "ABL", "AF2", "IG", "ENS", "ENSNOAF2", "ENS196-48", "ENS196-CLT"]
+        #xticks = ["ABB", "ABBE", "ABL", "AF2", "IG", "ENS", "ENSNOAF2", "ENS196-48", "ENS196-CLT"]
+        xticks = ["ABB", "ABL", "AF2", "IG", "ABBE", "AF2E", "IGE", "ENS", "ENSNOAF2", "CLE", "ENS196-48", "ENS196-CLT"]
         xticks.append("BOUND-BOUND")
         print(f"xticks {xticks}")
-        sorted_runs = [f'run-af2ab-{cat}-mpi-50-50', f'run-af2abens-{cat}-mpi-50-50', f'run-af2abl-{cat}-mpi-50-50',
-                   f'run-af2af2-{cat}-mpi-50-50', f'run-af2ig-{cat}-mpi-50-50', f'run-af2ens-{cat}-mpi-50-50', 
-                   f'run-af2ensnoaf2-{cat}-mpi-50-50', f'run-af2ens-{cat}-mpi-196-48', f'run-af2ens-{cat}-mpi-196-clt']
+        sorted_runs = get_sorted_runs(cat)
         print(f"sorted_runs {sorted_runs}")
 
         mod_b_1 = [bound_gap_clt[cat][run][1][0] for run in sorted_runs]
