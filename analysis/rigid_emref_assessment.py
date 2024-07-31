@@ -1,13 +1,13 @@
-from functions import load_data, create_bound_gap_dictionary
+from functions import get_sorted_runs, load_data, create_bound_gap_dictionary
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
-
+NPDBS = 82
 cat_dict = {"Para-Epi": "Para-Epi",
             "CDR-EpiVag": "CDR-VagueEpi" ,
             "CDR-EpiVag-AA" : "CDR-VagueEpi-AA"}
 
-rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri = load_data()
+rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
 
 af2_bound_gap_rigid = create_bound_gap_dictionary(rigidbody_capri, acc_key="acc")
 af2_bound_gap_rigid_emref = create_bound_gap_dictionary(emref_rigid_capri, acc_key="acc")
@@ -15,12 +15,12 @@ af2_bound_gap_rigid_emref = create_bound_gap_dictionary(emref_rigid_capri, acc_k
 print(f"af2_bound_gap_rigid_emref {af2_bound_gap_rigid_emref}")
 
 tot_runs = np.unique(emref_rigid_capri["pdb"]).shape[0] # should be 79
-assert tot_runs == 71
+assert tot_runs == NPDBS
 
 print("CREATING STACKED BARPLOT FOR PAPER")
 plt.rcParams["font.family"] = "Helvetica"
 
-fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(12, 8))
+fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 8))
 plt.subplots_adjust(wspace=0.1, hspace=0.1, bottom=0.25, top=0.925)
 plt.suptitle("HADDOCK3-rigid vs emref", fontsize=24, verticalalignment="center")
 col = 0
@@ -29,11 +29,9 @@ colors = plt.cm.tab20b.colors
 width = 0.2
 # rigidbody
 for cat in ["Para-Epi", "CDR-EpiVag-AA"]:
-    xticks = ["ABB", "ABBE", "ABL", "AF2", "IG", "ENS", "ENSNOAF2", "ENS196-48", "ENS196-CLT"]
-    # haddock runs
-    sorted_runs = [f'run-af2ab-{cat}-mpi-50-50', f'run-af2abens-{cat}-mpi-50-50', f'run-af2abl-{cat}-mpi-50-50',
-                   f'run-af2af2-{cat}-mpi-50-50', f'run-af2ig-{cat}-mpi-50-50', f'run-af2ens-{cat}-mpi-50-50', 
-                   f'run-af2ensnoaf2-{cat}-mpi-50-50', f'run-af2ens-{cat}-mpi-196-48', f'run-af2ens-{cat}-mpi-196-clt']
+    #xticks = ["ABB", "ABBE", "ABL", "AF2", "IG", "ENS", "ENSNOAF2", "ENS196-48", "ENS196-CLT"]
+    xticks = ["ABB", "ABL", "AF2", "IG", "ABBE", "AF2E", "IGE", "ENS", "ENSNOAF2", "CLE", "ENS196-48", "ENS196-CLT"]
+    sorted_runs = get_sorted_runs(cat)
     
     # haddock data
     mod_b_haddock_1 = [af2_bound_gap_rigid[cat][run][1][0] for run in sorted_runs]
@@ -53,7 +51,7 @@ for cat in ["Para-Epi", "CDR-EpiVag-AA"]:
     mod_b_rigid_emref_10 = [af2_bound_gap_rigid_emref[cat][run][10][0] for run in sorted_runs]
     mod_af2_rigid_emref_10 = [af2_bound_gap_rigid_emref[cat][run][10][1] for run in sorted_runs]
     
-    #zdock fractions
+    #rigid_emref fractions
     mod_b_rigid_emref_frac_1 = [el/tot_runs for el in mod_b_rigid_emref_1]
     mod_af2_rigid_emref_frac_1 = [el/tot_runs for el in mod_af2_rigid_emref_1]
     mod_b_rigid_emref_frac_10 = [el/tot_runs for el in mod_b_rigid_emref_10]
@@ -103,14 +101,20 @@ for cat in ["Para-Epi", "CDR-EpiVag-AA"]:
     print(f"Delta Bound {cat} 10: {np.mean(mod_b_rigid_emref_frac_10) - np.mean(mod_b_haddock_frac_10)}")
     print(f"Delta AF2 {cat} 10: {np.mean(mod_af2_rigid_emref_frac_10) - np.mean(mod_af2_haddock_frac_10)}")
 
-    # print deltas for ABB-ABBE (first two) and ENS-196-48 (last two)
-    print(f"Delta Bound {cat} 1: {mod_b_rigid_emref_frac_1[0]} - {mod_b_haddock_frac_1[0]} = {mod_b_rigid_emref_frac_1[0] - mod_b_haddock_frac_1[0]}")
-    print(f"Delta Bound {cat} 1: {mod_b_rigid_emref_frac_1[1]} - {mod_b_haddock_frac_1[1]} = {mod_b_rigid_emref_frac_1[1] - mod_b_haddock_frac_1[1]}")
-    # now the second last column
-    print(f"Delta Bound {cat} 1: {mod_b_rigid_emref_frac_1[-2]} - {mod_b_haddock_frac_1[-2]} = {mod_b_rigid_emref_frac_1[-2] - mod_b_haddock_frac_1[-2]}")
-    print(f"Delta Bound {cat} 1: {mod_b_rigid_emref_frac_1[-1]} - {mod_b_haddock_frac_1[-1]} = {mod_b_rigid_emref_frac_1[-1] - mod_b_haddock_frac_1[-1]}")
-    print("\n")
+    # print overall deltas
+    print(f"Delta Bound {cat} 1: {np.mean(mod_b_rigid_emref_frac_1):.2f} - {np.mean(mod_b_haddock_frac_1):.2f} = {(np.mean(mod_b_rigid_emref_frac_1) - np.mean(mod_b_haddock_frac_1)):.2f}")
+    print(f"Delta Bound {cat} 10: {np.mean(mod_b_rigid_emref_frac_10):.2f} - {np.mean(mod_b_haddock_frac_10):.2f} = {(np.mean(mod_b_rigid_emref_frac_10) - np.mean(mod_b_haddock_frac_10)):.2f}")
 
+    # now loop over deltas to extract improvements
+    for k in range(len(xticks)):
+        delta_bound_1 = mod_b_rigid_emref_frac_1[k] - mod_b_haddock_frac_1[k]
+        delta_af2_1 = mod_af2_rigid_emref_frac_1[k] - mod_af2_haddock_frac_1[k]
+        delta_bound_10 = mod_b_rigid_emref_frac_10[k] - mod_b_haddock_frac_10[k]
+        delta_af2_10 = mod_af2_rigid_emref_frac_10[k] - mod_af2_haddock_frac_10[k]
+        print(f"{xticks[k]} Delta Bound {cat} 1 {xticks[k]}: {delta_bound_1:.2f}")
+        print(f"{xticks[k]} Delta AF2 {cat} 1 {xticks[k]}: {delta_af2_1:.2f}")
+        print(f"{xticks[k]} Delta Bound {cat} 10 {xticks[k]}: {delta_bound_10:.2f}")
+        print(f"{xticks[k]} Delta AF2 {cat} 10 {xticks[k]}: {delta_af2_10:.2f}")
     axs[col].set_ylim((0,1.01))
     if col > 0:
         axs[col].set_yticks([])
