@@ -16,11 +16,8 @@ def load_data():
     Load all the necessary data for the analysis.
     """
     df_ss = pd.read_csv(Path("data", "df_ss.tsv"), sep=" ")
-    df_ss_flexref = pd.read_csv(Path("data", "df_ss_flexref.tsv"), sep=" ")
     # bound data: extract from df_ss: if the run contains the word bound
     df_ss_bound = df_ss.loc[df_ss["run"].str.contains("bound")]
-    # bound flexref data: same logic as above
-    df_ss_bound_flexref = df_ss_flexref.loc[df_ss_flexref["run"].str.contains("bound")]
     #df_ss_bound_flexref = pd.read_csv(Path("data", "df_ss_bound_flexref.tsv"), sep=" ")
     # rigid emref data
     df_ss_rigid_emref = pd.read_csv(Path("data", "df_ss_rigid-emref.tsv"), sep=" ")
@@ -31,15 +28,6 @@ def load_data():
     zdock_ss = pd.read_csv(Path("data", "df_ss_zdock.tsv"), sep=" ")
     # af2 multimer data
     af2multimer_ss = pd.read_csv(Path("data", "df_ss_af2multimer.tsv"), sep=" ")
-#
-    ## remove pdbs
-    #df_ss = df_ss.loc[~df_ss["pdb"].isin(pdbs_to_exclude)]
-    #df_ss_flexref = df_ss_flexref.loc[~df_ss_flexref["pdb"].isin(pdbs_to_exclude)]
-    #df_ss_bound = df_ss_bound.loc[~df_ss_bound["pdb"].isin(pdbs_to_exclude)]
-    #df_ss_bound_flexref = df_ss_bound_flexref.loc[~df_ss_bound_flexref["pdb"].isin(pdbs_to_exclude)]
-    #df_ss_rigid_emref = df_ss_rigid_emref.loc[~df_ss_rigid_emref["pdb"].isin(pdbs_to_exclude)]
-    #ref_data = ref_data.loc[~ref_data["pdb"].isin(pdbs_to_exclude)]
-    #zdock_ss = zdock_ss.loc[~zdock_ss["pdb"].isin(pdbs_to_exclude)]
 
     # check that the number of runs is correct
     tot_runs = np.unique(df_ss["pdb"]).shape[0] # should be 82
@@ -80,7 +68,7 @@ def load_data():
     # emref after rigid
     emref_capri_rigid = df_ss_rigid_emref.loc[df_ss_rigid_emref["capri_step"].isin([4])]
 
-    return rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_capri_rigid, af2multimer_ss
+    return rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, zdock_ss, emref_capri_rigid, af2multimer_ss
 
 def load_clt_data():
     df_clt = pd.read_csv(Path("data", "df_clt.tsv"), sep=" ")

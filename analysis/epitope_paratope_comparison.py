@@ -15,7 +15,7 @@ XTICKS = ["ABB", "ABL", "AF2", "IG", "ABBE", "AF2E", "IGE", "ENS", "ENSNOAF2", "
 af2_values = pd.read_csv(Path("data", "AF2_antigen_rmsd_plddt.csv"), sep=",")
 print(f"af2_values {af2_values}")
 
-rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, df_ss_flexref, df_ss_bound_flexref, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
+rigidbody_capri, rigidbody_capri_bound, emref_capri, emref_capri_bound, zdock_ss, emref_rigid_capri, af2multimer_ss = load_data()
 
 
 # PLOT CORRELATION ON TWO PLOT
@@ -89,9 +89,9 @@ plt.savefig(Path("figures", "epitope_paratope_comparison", f"plddt-rmsd-epionly.
 # EPITOPE RMSD PLOT
 # generating ave_af2rmsdepi_histo dictionary
 ave_af2rmsdepi_histo = {}
-ave_af2rmsdepi_histo["high"] = af2_values.where(af2_values["cat_epi_plddt"] == "high").dropna()["pdb"]
-ave_af2rmsdepi_histo["good"] = af2_values.where(af2_values["cat_epi_plddt"] == "good").dropna()["pdb"]
-ave_af2rmsdepi_histo["bad"] = af2_values.where(af2_values["cat_epi_plddt"] == "bad").dropna()["pdb"]
+ave_af2rmsdepi_histo["high"] = af2_values.where(af2_values["cat_epi_rmsd"] == "high").dropna()["pdb"]
+ave_af2rmsdepi_histo["good"] = af2_values.where(af2_values["cat_epi_rmsd"] == "good").dropna()["pdb"]
+ave_af2rmsdepi_histo["bad"] = af2_values.where(af2_values["cat_epi_rmsd"] == "bad").dropna()["pdb"]
 print(f"ave_af2rmsdepi_histo = {ave_af2rmsdepi_histo}")
 tops = [1, 5, 10, 20, 48]
 tops_dict = {el : 0 for el in tops}
@@ -104,7 +104,7 @@ for cat in cat_runs.keys():
 
 for cat in ["Para-Epi" , "CDR-EpiVag", "CDR-EpiVag-AA"]:
     af2_rmsdepi[cat] = {}
-    for stage in ["rigidbody", "emref", "flexref"]:
+    for stage in ["rigidbody", "emref"]:
         af2_rmsdepi[cat][stage] = {}
         for quality in ["bad", "good", "high"]:
             af2_rmsdepi[cat][stage][quality] = {}
@@ -134,11 +134,11 @@ for cat in cat_runs.keys():
             af2_mod_good_emref_epirmsd = good_pdbs_epirmsd.loc[good_pdbs_epirmsd[f"acc_top{top}"] > 0].shape[0]/good_pdbs_epirmsd.shape[0]
             af2_mod_high_emref_epirmsd = high_pdbs_epirmsd.loc[high_pdbs_epirmsd[f"acc_top{top}"] > 0].shape[0]/high_pdbs_epirmsd.shape[0]
             # flexref
-            run_df_flexref = df_ss_flexref.loc[df_ss_flexref["run"] == run]
+            #run_df_flexref = df_ss_flexref.loc[df_ss_flexref["run"] == run]
             
-            bad_pdbs_epirmsd = run_df_flexref.loc[run_df_flexref["pdb"].isin(ave_af2rmsdepi_histo["bad"])]
-            good_pdbs_epirmsd = run_df_flexref.loc[run_df_flexref["pdb"].isin(ave_af2rmsdepi_histo["good"])]
-            high_pdbs_epirmsd = run_df_flexref.loc[run_df_flexref["pdb"].isin(ave_af2rmsdepi_histo["high"])]
+            #bad_pdbs_epirmsd = run_df_flexref.loc[run_df_flexref["pdb"].isin(ave_af2rmsdepi_histo["bad"])]
+            #good_pdbs_epirmsd = run_df_flexref.loc[run_df_flexref["pdb"].isin(ave_af2rmsdepi_histo["good"])]
+            #high_pdbs_epirmsd = run_df_flexref.loc[run_df_flexref["pdb"].isin(ave_af2rmsdepi_histo["high"])]
             
             af2_mod_bad_flexref_epirmsd = bad_pdbs_epirmsd.loc[bad_pdbs_epirmsd[f"acc_top{top}"] > 0].shape[0]/bad_pdbs_epirmsd.shape[0]
             af2_mod_good_flexref_epirmsd = good_pdbs_epirmsd.loc[good_pdbs_epirmsd[f"acc_top{top}"] > 0].shape[0]/good_pdbs_epirmsd.shape[0]
@@ -150,9 +150,9 @@ for cat in cat_runs.keys():
             af2_rmsdepi[cat]["emref"]["bad"][run][top] = af2_mod_bad_emref_epirmsd
             af2_rmsdepi[cat]["emref"]["good"][run][top] = af2_mod_good_emref_epirmsd
             af2_rmsdepi[cat]["emref"]["high"][run][top] = af2_mod_high_emref_epirmsd
-            af2_rmsdepi[cat]["flexref"]["bad"][run][top] = af2_mod_bad_flexref_epirmsd
-            af2_rmsdepi[cat]["flexref"]["good"][run][top] = af2_mod_good_flexref_epirmsd
-            af2_rmsdepi[cat]["flexref"]["high"][run][top] = af2_mod_high_flexref_epirmsd
+            #af2_rmsdepi[cat]["flexref"]["bad"][run][top] = af2_mod_bad_flexref_epirmsd
+            #af2_rmsdepi[cat]["flexref"]["good"][run][top] = af2_mod_good_flexref_epirmsd
+            #af2_rmsdepi[cat]["flexref"]["high"][run][top] = af2_mod_high_flexref_epirmsd
 # plot
 plt.rcParams["font.family"] = "Helvetica"
 fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(15, 12))
